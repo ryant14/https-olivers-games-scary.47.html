@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Night Watch: Home Alone</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#0f1722;
+      --ink:#e9eef6;
+      --muted:#a8b3c2;
+      --accent:#7dd3fc;
+      --warn:#fb7185;
+      --ok:#34d399;
+      --shadow: rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 50% 10%, #141b26, var(--bg));
+      color:var(--ink);
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .wrap{
+      width:min(1100px, 100%);
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      box-shadow: 0 10px 30px var(--shadow);
+      overflow:hidden;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .title b{font-size:14px; letter-spacing:.2px}
+    .title small{color:var(--muted); font-size:12px}
+    .hud{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      font-size:12px; color:var(--muted);
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+    }
+    .pill strong{color:var(--ink)}
+    .pill .dot{
+      display:inline-block; width:8px; height:8px; border-radius:50%;
+      margin-right:6px; vertical-align:middle;
+      background: var(--ok);
+      box-shadow:0 0 0 3px rgba(52,211,153,.15);
+    }
+    .pill.warn .dot{ background: var(--warn); box-shadow:0 0 0 3px rgba(251,113,133,.15); }
+
+    .main{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+
+    /* House map */
+    .house{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+    .room{
+      position:relative;
+      border-radius:14px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(15,23,34,.55);
+      min-height:120px;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .08s ease, background .08s ease;
+      user-select:none;
+      overflow:hidden;
+    }
+    .room:hover{ transform: translateY(-1px); border-color: rgba(125,211,252,.4); }
+    .room.active{
+      outline:2px solid rgba(125,211,252,.55);
+      background: rgba(15,23,34,.75);
+    }
+    .room h3{ margin:0 0 6px; font-size:14px; }
+    .room p{ margin:0; color:var(--muted); font-size:12px; line-height:1.3; }
+    .badge{
+      position:absolute; top:10px; right:10px;
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .badge.todo{ color: var(--accent); border-color: rgba(125,211,252,.35); }
+    .badge.done{ color: var(--ok); border-color: rgba(52,211,153,.35); }
+    .badge.lock{ color: var(--warn); border-color: rgba(251,113,133,.35); }
+
+    .statusRow{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+
+    .panel{
+      padding:12px;
+    }
+    .panel h2{
+      margin:0 0 10px;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+
+    .log{
+      height:170px;
+      overflow:auto;
+      padding-right:6px;
+      font-size:12.5px;
+      line-height:1.35;
+    }
+    .log .line{
+      margin:0 0 8px;
+      color: var(--ink);
+    }
+    .log .muted{ color: var(--muted); }
+    .log .scary{ color: var(--warn); }
+    .log .good{ color: var(--ok); }
+
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    button{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: var(--ink);
+      padding:9px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s ease, border-color .06s ease, background .06s ease;
+      font-weight:600;
+      font-size:12px;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(125,211,252,.4); }
+    button:disabled{
+      opacity:.45; cursor:not-allowed; transform:none;
+    }
+    .primary{
+      border-color: rgba(125,211,252,.45);
+      background: rgba(125,211,252,.08);
+    }
+    .danger{
+      border-color: rgba(251,113,133,.45);
+      background: rgba(251,113,133,.08);
+    }
+
+    /* Phone */
+    .phone{
+      display:flex;
+      flex-direction:column;
+      height:100%;
+    }
+    .phoneTop{
+      padding:12px 14px;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .phoneTop b{font-size:14px}
+    .phoneTop small{color:var(--muted); font-size:12px}
+    .msgs{
+      padding:12px;
+      height:470px;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .msg{
+      max-width: 92%;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      font-size:12.5px;
+      line-height:1.35;
+      background: rgba(255,255,255,.03);
+      color: var(--ink);
+      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+    }
+    .msg.them{ align-self:flex-start; border-top-left-radius:6px; }
+    .msg.me{ align-self:flex-end; border-top-right-radius:6px; background: rgba(125,211,252,.08); border-color: rgba(125,211,252,.22); }
+    .meta{ color: var(--muted); font-size:11px; margin-top:5px; }
+
+    .footer{
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      display:flex; gap:8px;
+    }
+    .footer input{
+      flex:1;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.15);
+      color: var(--ink);
+      outline:none;
+      font-size:12.5px;
+    }
+
+    /* Modal */
+    .modal{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.65);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:50;
+    }
+    .modal.open{ display:flex; }
+    .modalBox{
+      width:min(760px, 100%);
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(16,24,36,.95);
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding:14px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+    }
+    .modalHead b{font-size:14px}
+    .modalBody{ padding:14px; color:var(--muted); font-size:13px; line-height:1.5; }
+    .modalBody b{ color:var(--ink); }
+    .modalFoot{ padding:14px; border-top:1px solid rgba(255,255,255,.10); display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+    kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:11px; padding:2px 6px; border-radius:6px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LEFT: House + actions -->
+    <div class="card">
+      <div class="topbar">
+        <div class="title">
+          <b>Night Watch: Home Alone</b>
+          <small>Original mini-episode • do chores, answer texts, and stay calm.</small>
+        </div>
+        <div class="hud">
+          <span class="pill"><span class="dot" id="dot"></span> Vibe: <strong id="vibe">Calm</strong></span>
+          <span class="pill"><strong id="time">9:12 PM</strong></span>
+          <span class="pill"><strong id="todoCount">0</strong> tasks left</span>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="house" id="house"></div>
+
+        <div class="card statusRow">
+          <div class="panel">
+            <h2>What you’re doing</h2>
+            <div class="log" id="log"></div>
+
+            <div class="actions" id="actions">
+              <button class="primary" id="btnDo" disabled>Do task</button>
+              <button id="btnLook" disabled>Look around</button>
+              <button id="btnLock" disabled>Check locks</button>
+              <button id="btnCall" class="danger" disabled>Call someone</button>
+              <button id="btnRestart">Restart</button>
+              <button id="btnHelp">How to play</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Phone -->
+    <div class="card phone">
+      <div class="phoneTop">
+        <div>
+          <b>Phone</b>
+          <div><small>Mom • Group Chat • Unknown</small></div>
+        </div>
+        <small>Tip: type “ok” and press Send</small>
+      </div>
+
+      <div class="msgs" id="msgs"></div>
+
+      <div class="footer">
+        <input id="input" placeholder="Type a reply… (or type help)" />
+        <button class="primary" id="send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal">
+    <div class="modalBox">
+      <div class="modalHead">
+        <b id="modalTitle">How to play</b>
+        <button id="closeModal">Close</button>
+      </div>
+      <div class="modalBody" id="modalBody"></div>
+      <div class="modalFoot">
+        <button class="primary" id="startBtn">Got it</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ---------------------------
+  // Simple “episode” design:
+  // - You have chores (tasks) around the house.
+  // - Text messages arrive.
+  // - Weird events happen based on time + “dread”.
+  // - Multiple endings.
+  // ---------------------------
+
+  const $ = (id) => document.getElementById(id);
+  const houseEl = $("house");
+  const logEl = $("log");
+  const msgsEl = $("msgs");
+
+  const btnDo = $("btnDo");
+  const btnLook = $("btnLook");
+  const btnLock = $("btnLock");
+  const btnCall = $("btnCall");
+  const btnRestart = $("btnRestart");
+  const btnHelp = $("btnHelp");
+
+  const vibeEl = $("vibe");
+  const dotEl = $("dot");
+  const timeEl = $("time");
+  const todoCountEl = $("todoCount");
+
+  const modal = $("modal");
+  const modalTitle = $("modalTitle");
+  const modalBody = $("modalBody");
+  const closeModal = $("closeModal");
+  const startBtn = $("startBtn");
+
+  const input = $("input");
+  const sendBtn = $("send");
+
+  const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  // Game state
+  let state;
+
+  const ROOMS = [
+    { id:"kitchen", name:"Kitchen", desc:"Microwave, sink, back door nearby." },
+    { id:"living", name:"Living Room", desc:"TV, couch, front window." },
+    { id:"hall", name:"Hallway", desc:"It feels longer at night." },
+    { id:"bath", name:"Bathroom", desc:"Mirror, cabinet, vent noise." },
+    { id:"bed", name:"Bedroom", desc:"Your room. Safe-ish." },
+    { id:"porch", name:"Front Porch", desc:"Door, mat, street sounds." },
+  ];
+
+  // Tasks (original, not the same as the real game)
+  const TASKS = {
+    kitchen: [
+      { key:"trash", label:"Take trash to bin", done:false, dread:+6 },
+      { key:"dish", label:"Rinse cup + put in dishwasher", done:false, dread:+3 },
+    ],
+    living: [
+      { key:"tv", label:"Turn off TV (it’s on for no reason)", done:false, dread:+7 },
+      { key:"curtains", label:"Close curtains", done:false, dread:+4 },
+    ],
+    hall: [
+      { key:"lights", label:"Turn hallway light on", done:false, dread:+2 },
+    ],
+    bath: [
+      { key:"tooth", label:"Brush teeth (quick)", done:false, dread:+1 },
+      { key:"towel", label:"Hang towel", done:false, dread:+2 },
+    ],
+    bed: [
+      { key:"backpack", label:"Pack backpack for tomorrow", done:false, dread:+1 },
+      { key:"charger", label:"Plug phone in", done:false, dread:+0 },
+    ],
+    porch: [
+      { key:"checkmail", label:"Check for package", done:false, dread:+9 },
+      { key:"locks", label:"Double-check deadbolt", done:false, dread:+2 },
+    ],
+  };
+
+  function defaultState(){
+    // Deep copy tasks
+    const tasks = {};
+    for (const r of ROOMS){
+      tasks[r.id] = TASKS[r.id].map(t => ({...t}));
+    }
+    return {
+      activeRoom: "living",
+      minute: 0, // 0.. (we map to 9:12PM onward)
+      dread: 0, // 0..100
+      finished: false,
+      endedWith: null,
+      tasks,
+      locksOk: true,
+      eventsSeen: new Set(),
+      phone: [],
+      unknownThreadStarted: false,
+      lastMsgAt: -999,
+    };
+  }
+
+  function formatTime(minute){
+    // start at 9:12 PM
+    let startH = 21, startM = 12;
+    let total = startH*60 + startM + minute;
+    let h = Math.floor(total/60) % 24;
+    let m = total % 60;
+    const ampm = h >= 12 ? "PM" : "AM";
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
+  }
+
+  function setVibe(){
+    const d = state.dread;
+    let vibe = "Calm";
+    let warn = false;
+    if (d >= 70){ vibe = "PANIC"; warn = true; }
+    else if (d >= 45){ vibe = "On Edge"; warn = true; }
+    else if (d >= 25){ vibe = "Uneasy"; }
+    vibeEl.textContent = vibe;
+    const pill = dotEl.closest(".pill");
+    if (warn) pill.classList.add("warn"); else pill.classList.remove("warn");
+  }
+
+  function log(text, cls=""){
+    const p = document.createElement("p");
+    p.className = "line " + cls;
+    p.textContent = text;
+    logEl.appendChild(p);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function addMsg(who, text){
+    const div = document.createElement("div");
+    div.className = "msg " + (who === "me" ? "me" : "them");
+    div.innerHTML = `
+      <div>${escapeHtml(text)}</div>
+      <div class="meta">${who === "me" ? "You" : who} • ${formatTime(state.minute)}</div>
+    `;
+    msgsEl.appendChild(div);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function tasksLeft(){
+    let left = 0;
+    for (const r of ROOMS){
+      for (const t of state.tasks[r.id]){
+        if (!t.done) left++;
+      }
+    }
+    return left;
+  }
+
+  function updateHUD(){
+    timeEl.textContent = formatTime(state.minute);
+    todoCountEl.textContent = tasksLeft();
+    setVibe();
+  }
+
+  function renderHouse(){
+    houseEl.innerHTML = "";
+    for (const r of ROOMS){
+      const room = document.createElement("div");
+      room.className = "room" + (state.activeRoom === r.id ? " active" : "");
+      const rTasks = state.tasks[r.id];
+      const left = rTasks.filter(t => !t.done).length;
+
+      let badgeText = left > 0 ? `${left} task` + (left>1?"s":"") : "All done";
+      let badgeClass = left > 0 ? "todo" : "done";
+
+      // special: porch can become "locked" if something happens
+      if (r.id === "porch" && !state.locksOk){
+        badgeText = "Door weird";
+        badgeClass = "lock";
+      }
+
+      room.innerHTML = `
+        <span class="badge ${badgeClass}">${badgeText}</span>
+        <h3>${r.name}</h3>
+        <p>${r.desc}</p>
+      `;
+      room.addEventListener("click", () => {
+        if (state.finished) return;
+        state.activeRoom = r.id;
+        log(`You go to the ${r.name}.`, "muted");
+        tick(1);
+        refresh();
+      });
+      houseEl.appendChild(room);
+    }
+
+    // Enable buttons based on room
+    btnDo.disabled = state.finished;
+    btnLook.disabled = state.finished;
+    btnLock.disabled = state.finished;
+    btnCall.disabled = state.finished;
+
+    // If no tasks in this room left, still can look around / check locks etc.
+    // Do task should be disabled if no tasks left in room
+    const leftHere = state.tasks[state.activeRoom].some(t => !t.done);
+    btnDo.disabled = state.finished || !leftHere;
+  }
+
+  function refresh(){
+    renderHouse();
+    updateHUD();
+  }
+
+  // ---------------------------
+  // Story / Events (original)
+  // ---------------------------
+
+  function maybeSendMomTexts(){
+    // Mom texts at certain minutes
+    const m = state.minute;
+
+    const script = [
+      { at: 0, who:"Mom", text:"Hey kiddo—just got to Aunt Mel’s. You good?" },
+      { at: 2, who:"Mom", text:"Remember: keep the front door locked. And don’t open it for anyone." },
+      { at: 5, who:"Mom", text:"If the doorbell rings, ignore it. Text me instead." },
+      { at: 10, who:"Mom", text:"Did you eat? There’s leftovers in the fridge." },
+      { at: 16, who:"Mom", text:"If you get bored, do the little chores list we talked about. I’ll be back later tonight." },
+      { at: 24, who:"Mom", text:"Phone on loud, okay? ❤️" },
+    ];
+
+    for (const s of script){
+      if (m === s.at && !state.eventsSeen.has("mom_"+s.at)){
+        state.eventsSeen.add("mom_"+s.at);
+        addMsg(s.who, s.text);
+        state.dread = Math.max(0, state.dread - 2); // mom texts calm you a bit
+      }
+    }
+  }
+
+  function maybeWeirdEvents(){
+    const m = state.minute;
+
+    // Small, realistic “off” moments that escalate
+    // We keep these original.
+    const events = [
+      {
+        key:"tv_static",
+        when: (m >= 4),
+        chance: 12,
+        once:true,
+        run: () => {
+          log("The TV volume changes by itself. Just a little.", "scary");
+          state.dread += 8;
+          // add a “task” in living room if not done: turn off TV
+          const tvTask = state.tasks.living.find(t => t.key === "tv");
+          if (tvTask && tvTask.done) {
+            // if already off, it’s still weird
+            log("But… the TV is already off.", "scary");
+            state.dread += 6;
+          }
+        }
+      },
+      {
+        key:"kitchen_tap",
+        when: (m >= 8),
+        chance: 10,
+        once:true,
+        run: () => {
+          log("You hear a tiny drip from the kitchen sink. One drip. Then nothing.", "muted");
+          state.dread += 4;
+        }
+      },
+      {
+        key:"door_thump",
+        when: (m >= 12),
+        chance: 10,
+        once:true,
+        run: () => {
+          log("A soft thump comes from the front door. Like someone bumped it.", "scary");
+          state.dread += 12;
+          addMsg("Mom", "Everything okay? I heard your notification and got nervous.");
+        }
+      },
+      {
+        key:"porch_package",
+        when: (m >= 14),
+        chance: 16,
+        once:true,
+        run: () => {
+          log("Your phone buzzes. A delivery notification: “Package delivered.”", "muted");
+          state.dread += 6;
+          // Make porch task more tempting
+        }
+      },
+      {
+        key:"unknown_text",
+        when: (m >= 18),
+        chance: 14,
+        once:true,
+        run: () => {
+          state.unknownThreadStarted = true;
+          addMsg("Unknown", "is this the kid at 214? tell ur mom to answer.");
+          log("You don’t recognize the number.", "scary");
+          state.dread += 14;
+        }
+      },
+      {
+        key:"backdoor_click",
+        when: (m >= 22),
+        chance: 18,
+        once:true,
+        run: () => {
+          log("From the kitchen: a click… like a latch testing itself.", "scary");
+          state.dread += 14;
+          state.locksOk = false;
+        }
+      },
+      {
+        key:"window_shadow",
+        when: (m >= 28),
+        chance: 18,
+        once:true,
+        run: () => {
+          log("In the living room window, a shape crosses the streetlight for a second.", "scary");
+          state.dread += 16;
+        }
+      },
+      {
+        key:"doorbell",
+        when: (m >= 32),
+        chance: 22,
+        once:true,
+        run: () => {
+          log("DING DONG.", "scary");
+          log("The doorbell rings once.", "scary");
+          state.dread += 18;
+          addMsg("Unknown", "open the door.");
+        }
+      }
+    ];
+
+    // roll a couple times, but not too much
+    for (const e of events){
+      if (!e.when) continue;
+      if (e.once && state.eventsSeen.has(e.key)) continue;
+      const roll = rand(1,100);
+      if (roll <= e.chance){
+        if (e.once) state.eventsSeen.add(e.key);
+        e.run();
+      }
+    }
+
+    // Cap dread
+    state.dread = Math.max(0, Math.min(100, state.dread));
+  }
+
+  function maybeEndings(){
+    if (state.finished) return;
+
+    const left = tasksLeft();
+    const m = state.minute;
+
+    // “Good ending”: you finish tasks, keep calm, and call mom before it escalates
+    if (left === 0 && state.dread < 55 && m >= 20){
+      // not instant; you need to survive a little
+      if (!state.eventsSeen.has("good_ready")){
+        state.eventsSeen.add("good_ready");
+        log("You finish everything. The house feels… quieter.", "good");
+        addMsg("Mom", "Proud of you. I’m leaving soon. Keep the doors locked.");
+      }
+    }
+
+    // Win condition: finish tasks + check locks + call mom after doorbell
+    if (left === 0 && state.eventsSeen.has("doorbell") && state.eventsSeen.has("locks_checked") && state.eventsSeen.has("called_someone")){
+      endGame("SAFE", `
+        You did the smart thing.
+        You didn’t “investigate.” You locked up, called for help, and waited.
+        Later, your mom arrives with a neighbor and everything is okay.
+        No hero moves. Just good choices.
+      `);
+      return;
+    }
+
+    // “Bad ending”: dread maxes out
+    if (state.dread >= 100){
+      endGame("PANIC", `
+        Your brain goes into full panic mode.
+        Every sound feels like a threat, and you freeze.
+        You should’ve called someone sooner.
+      `);
+      return;
+    }
+
+    // “Risky ending”: you go to porch after doorbell without checking locks
+    if (state.activeRoom === "porch" && state.eventsSeen.has("doorbell") && !state.eventsSeen.has("locks_checked")){
+      endGame("BAD CHOICE", `
+        You step toward the door without checking anything first.
+        The handle jiggles from the outside.
+        You jump back, heart pounding, and slam the deadbolt…
+        but you don’t know if it was already too late.
+      `);
+      return;
+    }
+
+    // Timeout ending: if you last long enough without catastrophic choices
+    if (m >= 42){
+      endGame("SURVIVED", `
+        Time passes. Nothing “big” happens… which is somehow worse.
+        Mom finally gets home and hugs you like she never wants to let go.
+        You don’t sleep great that night.
+      `);
+      return;
+    }
+  }
+
+  function endGame(title, text){
+    state.finished = true;
+    state.endedWith = title;
+    openModal(title, `
+      <p><b>Ending:</b> ${escapeHtml(title)}</p>
+      <p>${escapeHtml(text)}</p>
+      <p class="muted">Want to tweak it? You can edit the story events inside the code (search for <b>maybeWeirdEvents</b>).</p>
+    `);
+    log(`Game Over: ${title}`, "scary");
+    refresh();
+  }
+
+  // ---------------------------
+  // Player actions
+  // ---------------------------
+
+  function doTask(){
+    const list = state.tasks[state.activeRoom];
+    const next = list.find(t => !t.done);
+    if (!next) return;
+
+    next.done = true;
+    log(`You do: ${next.label}.`, "good");
+
+    // Some tasks increase or decrease dread depending on location & story
+    state.dread += next.dread;
+
+    // Some tasks calm you (like lights on)
+    if (next.key === "lights") state.dread = Math.max(0, state.dread - 8);
+    if (next.key === "charger") state.dread = Math.max(0, state.dread - 4);
+    if (next.key === "curtains") state.dread = Math.max(0, state.dread - 3);
+
+    // Special: locks task checks door state
+    if (next.key === "locks"){
+      state.eventsSeen.add("locks_checked");
+      if (!state.locksOk){
+        log("The back door lock feels… loose. You push until it clicks.", "scary");
+        state.locksOk = true;
+        state.dread += 8;
+      } else {
+        log("The locks seem okay.", "muted");
+        state.dread = Math.max(0, state.dread - 2);
+      }
+    }
+
+    tick(2);
+    refresh();
+  }
+
+  function lookAround(){
+    const r = state.activeRoom;
+    const lines = {
+      kitchen: [
+        "The fridge hum is oddly loud.",
+        "A spoon is on the counter. You don’t remember leaving it there.",
+        "The back door curtain moves slightly… probably airflow."
+      ],
+      living: [
+        "The TV reflects the room like a dark mirror.",
+        "The hallway looks darker than it should.",
+        "The window glass feels like it’s watching you back."
+      ],
+      hall: [
+        "The air is cooler here.",
+        "You hear your own breathing.",
+        "A floorboard creaks… behind you? (no, it was yours)"
+      ],
+      bath: [
+        "The vent rattles once, then stops.",
+        "The mirror makes your face look unfamiliar for a second.",
+        "The cabinet door is slightly open."
+      ],
+      bed: [
+        "Your bed looks safe. Like a checkpoint.",
+        "The closet is… just a closet. Obviously.",
+        "You feel your shoulders drop a little."
+      ],
+      porch: [
+        "Cold air leaks under the door.",
+        "You hear a car pass. Then silence.",
+        "The doormat says WELCOME like it’s joking."
+      ]
+    };
+    const pick = lines[r][rand(0, lines[r].length-1)];
+    log(pick, state.dread > 55 ? "scary" : "muted");
+    state.dread += rand(1,4);
+    tick(1);
+    refresh();
+  }
+
+  function checkLocks(){
+    state.eventsSeen.add("locks_checked");
+    if (!state.locksOk){
+      log("You check the locks. The back door latch takes extra force to click.", "scary");
+      state.locksOk = true;
+      state.dread += 6;
+    } else {
+      log("You check locks: front and back look fine.", "muted");
+      state.dread = Math.max(0, state.dread - 2);
+    }
+    tick(1);
+    refresh();
+  }
+
+  function callSomeone(){
+    state.eventsSeen.add("called_someone");
+    log("You call your mom. It rings once…", "muted");
+
+    // If the Unknown thread exists, mom replies more urgently
+    if (state.unknownThreadStarted || state.eventsSeen.has("doorbell")){
+      addMsg("Mom", "Stay inside. Lock everything. I’m calling Mr. Rios next door and heading back NOW.");
+      state.dread = Math.max(0, state.dread - 8);
+    } else {
+      addMsg("Mom", "All good? I’m proud of you. Lock up and I’ll be home soon.");
+      state.dread = Math.max(0, state.dread - 5);
+    }
+    tick(2);
+    refresh();
+  }
+
+  // ---------------------------
+  // Time + turn processing
+  // ---------------------------
+
+  function tick(minutes){
+    state.minute += minutes;
+    maybeSendMomTexts();
+    maybeWeirdEvents();
+    maybeEndings();
+  }
+
+  // ---------------------------
+  // Phone typing
+  // ---------------------------
+
+  function handleSend(){
+    if (state.finished) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMsg("me", text);
+    input.value = "";
+
+    const lower = text.toLowerCase();
+
+    if (lower === "help"){
+      openModal("Phone commands", `
+        <p>You can type anything, but these shortcuts work:</p>
+        <ul>
+          <li><b>ok</b> — calm reply</li>
+          <li><b>where are you</b> — ask mom location</li>
+          <li><b>who is this</b> — reply to Unknown (if they text)</li>
+          <li><b>im calling you</b> — triggers calling action</li>
+        </ul>
+      `);
+      return;
+    }
+
+    if (lower === "im calling you" || lower === "i'm calling you"){
+      callSomeone();
+      return;
+    }
+
+    // React to Unknown
+    if (state.unknownThreadStarted && (lower.includes("who is this") || lower.includes("who are you"))){
+      addMsg("Unknown", "wrong question.");
+      log("That reply gives you chills.", "scary");
+      state.dread += 10;
+      tick(1);
+      refresh();
+      return;
+    }
+
+    // Mom reactions
+    if (lower === "ok" || lower === "okay" || lower === "k"){
+      addMsg("Mom", "Good. I love you. Doors locked.");
+      state.dread = Math.max(0, state.dread - 2);
+      tick(1);
+      refresh();
+      return;
+    }
+
+    if (lower.includes("where") && lower.includes("you")){
+      addMsg("Mom", "Still at Aunt Mel’s. About 25 minutes away.");
+      tick(1);
+      refresh();
+      return;
+    }
+
+    // Default: slight time passes
+    tick(1);
+    refresh();
+  }
+
+  // ---------------------------
+  // Modal helpers
+  // ---------------------------
+
+  function openModal(title, html){
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modal.classList.add("open");
+  }
+  function closeModalFn(){
+    modal.classList.remove("open");
+  }
+
+  // ---------------------------
+  // Start / Restart
+  // ---------------------------
+
+  function startGame(){
+    state = defaultState();
+    logEl.innerHTML = "";
+    msgsEl.innerHTML = "";
+
+    // Intro messages
+    addMsg("Mom", "Hey kiddo—just got to Aunt Mel’s. You good?");
+    addMsg("Mom", "Remember: keep the door locked. Don’t open it for anyone.");
+    addMsg("Mom", "Do a few chores and then chill. I’ll be back later tonight. ❤️");
+
+    log("You’re home alone. It’s not supposed to be scary.", "muted");
+    log("Finish your chores. If anything feels weird… call someone.", "muted");
+
+    // initial tick (so time starts moving)
+    tick(0);
+    refresh();
+  }
+
+  // ---------------------------
+  // Wire up UI
+  // ---------------------------
+
+  btnDo.addEventListener("click", doTask);
+  btnLook.addEventListener("click", lookAround);
+  btnLock.addEventListener("click", checkLocks);
+  btnCall.addEventListener("click", callSomeone);
+  btnRestart.addEventListener("click", () => { closeModalFn(); startGame(); });
+  btnHelp.addEventListener("click", () => {
+    openModal("How to play", `
+      <p><b>Goal:</b> finish chores and make smart choices.</p>
+      <p>Click a room to move. Each move advances time.</p>
+      <p><b>Buttons:</b></p>
+      <ul>
+        <li><b>Do task</b> — completes a chore in the current room</li>
+        <li><b>Look around</b> — flavor + sometimes raises “dread”</li>
+        <li><b>Check locks</b> — can reduce risk</li>
+        <li><b>Call someone</b> — safest action if things escalate</li>
+      </ul>
+      <p><b>Tip:</b> When in doubt, lock up and call. Don’t “investigate.”</p>
+      <p class="muted">This is an original mini-episode inspired by the “home alone horror” vibe.</p>
+    `);
+  });
+
+  closeModal.addEventListener("click", closeModalFn);
+  startBtn.addEventListener("click", closeModalFn);
+
+  sendBtn.addEventListener("click", handleSend);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSend();
+  });
+
+  // Start with help modal
+  openModal("Night Watch: Home Alone", `
+    <p><b>You’re home alone</b> for a bit. Your job: do small chores, stay calm, and make safe choices.</p>
+    <p>Click rooms to move. Use buttons to interact. Answer texts on the right.</p>
+    <p>Multiple endings. Your choices matter.</p>
+  `);
+
+  startGame();
+})();
+</script>
+</body>
+</html>
